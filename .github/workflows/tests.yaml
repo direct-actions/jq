@@ -22,9 +22,8 @@ jobs:
         uses: ./
         with:
           args: a b c 
-          debug: false
+          debug: true
           filter: '"\($ARGS.positional[0]), \($ARGS.positional[1]), \($ARGS.positional[2])"'
-          indent: 4
           input_yaml: |
             a: b
             c: d
