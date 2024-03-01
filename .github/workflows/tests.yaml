@@ -1,0 +1,30 @@
+name: Tests
+
+on:
+  push:
+
+jobs:
+  test_action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test 1
+        uses: ./
+        with:
+          arg: 'bob: yep'
+          debug: false
+          filter: '"howdy: \($bob)"'
+          indent: 4
+          input: '{ "hi": "mom" }'
+          raw-output: true
+          sort-keys: true
+      - name: Test 2
+        uses: ./
+        with:
+          args: a b c 
+          debug: false
+          filter: '"\($ARGS.positional[0]), \($ARGS.positional[1]), \($ARGS.positional[2])"'
+          indent: 4
+          input_yaml: |
+            a: b
+            c: d
