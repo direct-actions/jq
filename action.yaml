@@ -1,0 +1,377 @@
+name: jq
+
+description: Direct Actions jq action
+
+inputs:
+  #
+  # Action arguments
+  #
+  arguments:
+    default: ""
+    description: Pass arguments directly to jq
+    required: false
+  debug:
+    default: false
+    description: Add debug output
+    required: false
+  filter:
+    default: .
+    description: jq filter (will be ignored if from-file is specified)
+    required: false
+  input:
+    default: ""
+    description: Input for jq
+    required: false
+  input_files:
+    default: ''
+    description: One or more filenames for jq to use as input
+    required: false
+  input_yaml:
+    default: ""
+    description: Input for jq in YAML format - will transform into JSON for jq
+    required: false
+  output_yaml:
+    default: false
+    description: Output in YAML format - will transform jq JSON output
+    required: false
+  quiet:
+    default: false
+    description: Suppress JSON output when available
+    required: false
+  version: 
+    default: 1.7.1
+    description: Version of jq - will retrieve if necessary, "" will use existing version
+    required: false
+  #
+  # Following are implementations of jq's native arguments
+  #
+  arg:
+    default: ""
+    description: (jq arg) set $name to the string value - specify as YAML map
+    required: false
+  args:
+    default: ""
+    description: (jq arg) positional string values
+    required: false
+  argjson:
+    default: ""
+    description: (jq arg) set $name to the JSON value - specify is YAML map
+    required: false
+  ascii-output:
+    default: false
+    description: (jq arg -a) output strings by only ASCII characters using escape sequences
+    required: false
+  compact-output:
+    default: false
+    description: (jq arg -c) compact instead of pretty-printed output
+    required: false
+  exit-status:
+    default: false
+    description: (jq arg -e) set exit status code based on the output
+    required: false
+  from-file:
+    default: ''
+    description: (jq arg -f) load filter from the file
+    required: false
+  indent:
+    default: ''
+    description: (jq arg) use n spaces for indentation (max 7 spaces)
+    required: false
+  join-output:
+    default: false
+    description: (jq arg -j) implies -r and output without newline after each output
+    required: false
+  jsonargs:
+    default: ''
+    description: (jq arg) positional JSON values
+    required: false
+  module-directory:
+    default: ''
+    description: (jq arg -L) search modules from the directory
+    required: false
+  null-input:
+    default: false
+    description: (jq arg -n) use null as the single input value
+    required: false
+  raw-input:
+    default: false
+    description: (jq arg -R) read each line as string instead of JSON
+    required: false
+  raw-output:
+    default: false
+    description: (jq arg -r) output strings without escapes and quotes
+    required: false
+  raw-output0:
+    default: false
+    description: (jq arg) implies -r and output NUL after each output
+    required: false
+  rawfile:
+    default: ""
+    description: (jq arg) set $name to string contents of file - specify as YAML map
+    required: false
+  seq:
+    default: false
+    description: (jq arg) parse input/output as application/json-seq
+    required: false
+  slurp:
+    default: false
+    description: (jq arg -s) read all inputs into an array and use it as the single input value
+    required: false
+  slurpfile:
+    default: ""
+    description: (jq arg) name file set $name to an array of JSON values read from the file - specify as YAML map
+    required: false
+  sort-keys:
+    default: false
+    description: (jq arg -S) sort keys of each object on output
+    required: false
+  stream:
+    default: false
+    description: (jq arg) parse the input value in streaming fashion
+    required: false
+  stream-errors:
+    default: false
+    description: (jq arg) implies --stream and report parse error as an array
+    required: false
+  tab:
+    default: false
+    description: (jq arg) use tabs for indentation
+    required: false
+  unbuffered:
+    default: false
+    description: (jq arg) flush output stream after each output
+    required: false
+
+ # -C, --color-output        colorize JSON output
+ # -M, --monochrome-output   disable colored output
+ # --build-configuration     show jq's build configuration
+ # --                        terminates argument processing
+
+outputs:
+  is-json:
+    description: Is output JSON - "true" or "false"
+    value: ${{ steps.jq.outputs.is-json }}
+  output:
+    description: Output from jq command
+    value: ${{ steps.jq.outputs.output }}
+
+runs:
+  using: composite
+  steps:
+    - env:
+        JQ_BIN_DIR: "${{ runner.temp }}/.direct-actions/jq/${{ inputs.version }}"
+        INPUTS_arg: ${{ inputs.arg }}
+        INPUTS_args: ${{ inputs.args }}
+        INPUTS_argjson: ${{ inputs.argjson }}
+        INPUTS_arguments: ${{ inputs.arguments }}
+        INPUTS_jsonargs: ${{ inputs.jsonargs }}
+        INPUTS_slurpfile: ${{ inputs.slurpfile }}
+        INPUTS_rawfile: ${{ inputs.rawfile }}
+      id: setup-jq
+      run: |
+        # setup-jq
+        #
+        ${{ inputs.debug == 'true' && 'set -x' || '' }}
+        JQ_OS=$(uname -s)
+        if [ "$JQ_OS" = "Darwin" ] ; then
+          JQ_OS=macos
+        elif [ "$JQ_OS" = "Linux" ] ; then
+          JQ_OS=linux
+        else
+          echo "::error title=Unknown Runner OS::Unknown runner OS reported by uname -s (${JQ_OS})"
+          exit 1
+        fi
+
+        JQ_ARCH=$(uname -m)
+        if [ "$JQ_ARCH" = "aarch64" ] ; then
+          JQ_ARCH=arm64
+        elif [ "$JQ_ARCH" = "x86_64" ] ; then
+          JQ_ARCH=amd64
+        fi
+
+        JQ_BIN_FILE="jq-${JQ_OS}-${JQ_ARCH}"
+ 
+        if [ -z '${{ inputs.version }}' ] ; then
+          JQ_BIN=$(command -v jq)
+        else
+          JQ_BIN="${JQ_BIN_DIR}/${JQ_BIN_FILE}"
+        fi
+
+        if [ -x "${JQ_BIN}" ] ; then
+          JQ_BIN_EXISTS=true
+        else
+          JQ_BIN_EXISTS=false
+        fi
+
+        JQ_BIN_FILE="jq-${JQ_OS}-${JQ_ARCH}"
+
+        # Process inputs
+        #
+        INPUT=$(mktemp)
+        INPUT_YAML=$(mktemp)
+
+        if ${{ inputs.input != '' }} ; then
+          cat <<'__EOF_DA_JQ__' >"$INPUT"
+        ${{ inputs.input }}
+        __EOF_DA_JQ__
+        else
+          INPUT=
+        fi
+
+        if ${{ inputs.input_yaml != '' }} ; then
+          cat <<'__EOF_DA_JQ__' | yq @json >"$INPUT_YAML"
+        ${{ inputs.input_yaml }}
+        __EOF_DA_JQ__
+        else
+          INPUT_YAML=
+        fi
+
+        # Process arguments
+        #
+        JQ_ARGS_STRING=
+
+        # binary flags
+        JQ_ARGS=()
+        if [ '${{ inputs.ascii-output }}' == true ] ; then   JQ_ARGS+=(-a)              ; fi
+        if [ '${{ inputs.compact-output }}' == true ] ; then JQ_ARGS+=(-c)              ; fi
+        if [ '${{ inputs.exit-status }}' == true ] ; then    JQ_ARGS+=(--exit-status)   ; fi
+        if [ '${{ inputs.join-output }}' == true ] ; then    JQ_ARGS+=(-j)              ; fi
+        if [ '${{ inputs.null-input }}' == true ] ; then     JQ_ARGS+=(-n)              ; fi
+        if [ '${{ inputs.raw-input }}' == true ] ; then      JQ_ARGS+=(-R)              ; fi
+        if [ '${{ inputs.raw-output }}' == true ] ; then     JQ_ARGS+=(-r)              ; fi
+        if [ '${{ inputs.raw-output0 }}' == true ] ; then    JQ_ARGS+=(--raw-output0)   ; fi
+        if [ '${{ inputs.seq }}' == true ] ; then            JQ_ARGS+=(--seq)           ; fi
+        if [ '${{ inputs.slurp }}' == true ] ; then          JQ_ARGS+=(-s)              ; fi
+        if [ '${{ inputs.sort-keys }}' == true ] ; then      JQ_ARGS+=(-S)              ; fi
+        if [ '${{ inputs.stream }}' == true ] ; then         JQ_ARGS+=(--stream)        ; fi
+        if [ '${{ inputs.stream-errors }}' == true ] ; then  JQ_ARGS+=(--stream-errors) ; fi
+        if [ '${{ inputs.tab }}' == true ] ; then            JQ_ARGS+=(--tab)           ; fi
+        if [ '${{ inputs.unbuffered }}' == true ] ; then     JQ_ARGS+=(--unbuffered)    ; fi
+
+        # simple parameters
+        if [ -n '${{ inputs.from-file }}' ] ; then
+          JQ_ARGS+=(--from-file)
+          JQ_ARGS+=('${{ inputs.from-file }}')
+        fi
+        if [ -n '${{ inputs.indent }}' ] ; then
+          JQ_ARGS+=(--indent)
+          JQ_ARGS+=('${{ inputs.indent }}')
+        fi
+        if [ -n '${{ inputs.module-directory }}' ] ; then
+          JQ_ARGS+=(--module-directory)
+          JQ_ARGS+=('${{ inputs.module-directory }}')
+        fi
+        for arg in "${JQ_ARGS[@]}" ; do
+          JQ_ARGS_STRING+=" $arg"
+        done 
+
+        # yaml transforms - let yq take care of quoting
+        if ${{ inputs.arg != '' }} ; then
+          JQ_ARGS_STRING+=' '$(yq @json <<<"$INPUTS_arg" | jq "to_entries[] | \"--arg\", .key, .value" | tr '\n' ' ')
+        fi
+        if ${{ inputs.argjson != '' }} ; then
+          JQ_ARGS_STRING+=' '$(yq @json <<<"$INPUTS_argjson" | jq "to_entries[] | \"--argjson\", .key, .value" | tr '\n' ' ')
+        fi
+        if ${{ inputs.rawfile != '' }} ; then
+          JQ_ARGS_STRING+=' '$(yq @json <<<"$INPUTS_rawfile" | jq "to_entries[] | \"--rawfile\", .key, .value" | tr '\n' ' ')
+        fi
+        if ${{ inputs.slurpfile != '' }} ; then
+          JQ_ARGS_STRING+=' '$(yq @json <<<"$INPUTS_slurpfile" | jq "to_entries[] | \"--slurpfile\", .key, .value" | tr '\n' ' ')
+        fi
+
+        # finally, "remaining arguments are..."
+        JQ_ARGS=()
+        if ${{ inputs.args != '' }} && ${{ inputs.jsonargs != '' }} ; then
+          echo '::error title=Invalid parameters::Cannot specify both args and jsonargs parameters'
+          exit 1
+        fi
+        if ${{ inputs.args != '' }} ; then
+          JQ_ARGS+=(--args)
+        fi
+        if ${{ inputs.jsonargs != '' }} ; then
+          JQ_ARGS+=(--jsonargs)
+        fi
+        append_args() {
+          while [ -n "$1" ] ; do
+            JQ_ARGS+=("$1")
+            shift
+          done
+        }
+        append_args $INPUTS_args $INPUTS_jsonargs
+
+        for arg in "${JQ_ARGS[@]}" ; do
+          JQ_ARGS_STRING+=" $arg"
+        done 
+
+        # inject input.arguments, and finish arguments
+        if ${{ inputs.arguments != '' }} ; then
+          JQ_ARGS_STRING+=" ${INPUTS_arguments}"
+          if ! [[ "$INPUTS_arguments" =~ -- ]] ; then
+            JQ_ARGS=(--)
+          else
+            JQ_ARGS=()
+          fi
+        else
+          JQ_ARGS=(--)
+        fi
+
+        append_args ${{ inputs.input-files }}
+
+        for arg in "${JQ_ARGS[@]}" ; do
+          JQ_ARGS_STRING+=" $arg"
+        done 
+
+        ${{ inputs.quiet == 'true' && '' || 'echo ::group::setup-jq outputs' }}
+        cat <<_EOF_ ${{ inputs.quiet == 'true'  && '>' || '| tee -a' }} "$GITHUB_OUTPUT"
+        file-input=${INPUT}
+        file-input-yaml=${INPUT_YAML}
+        jq-args=${JQ_ARGS_STRING# }
+        jq-bin=${JQ_BIN}
+        jq-bin-dir=${JQ_BIN_DIR}
+        jq-bin-exists=${JQ_BIN_EXISTS}
+        jq-bin-file=${JQ_BIN_FILE}
+        _EOF_
+        ${{ inputs.quiet == 'true' && '' || 'echo ::endgroup::' }}
+      shell: bash
+    - env:
+        JQ_BIN: ${{ steps.setup-jq.outputs.jq-bin }}
+        JQ_BIN_DIR: ${{ steps.setup-jq.outputs.jq-bin-dir }}
+        JQ_BIN_FILE: ${{ steps.setup-jq.outputs.jq-bin-file }}
+        JQ_URL: https://github.com/jqlang/jq/releases/download/jq-${{ inputs.version }}/${{ steps.setup-jq.outputs.jq-bin-file }}
+      if: ${{ steps.setup-jq.outputs.jq-bin-exists != 'true' }}
+      run: |
+        # Retrieving jq (${{ inputs.version }})
+        ${{ inputs.debug == 'true' && 'set -x' || '' }}
+
+        if [ ! -d "$JQ_BIN_DIR" ] ; then
+          mkdir -p "$JQ_BIN_DIR" 
+        fi
+
+        curl --output-dir "$JQ_BIN_DIR" -Ofs -L "$JQ_URL"
+        chmod 755 "$JQ_BIN"
+      shell: bash
+    - env:
+        JQ_ARGS: ${{ steps.setup-jq.outputs.jq-args }}
+        JQ_BIN: ${{ steps.setup-jq.outputs.jq-bin }}
+        JQ_FILTER: ${{ inputs.from-file == '' && inputs.filter || '' }}
+        JQ_INPUT_FILES: ${{ steps.setup-jq.outputs.file-input }} ${{ steps.setup-jq.outputs.file-input-yaml }} ${{ inputs.input_files }}
+      id: jq
+      run: |
+        # jq
+        ${{ inputs.debug == 'true' && 'set -x' || '' }}
+
+        output=$(mktemp)
+
+        ${{ inputs.quiet == 'true' && '' || 'echo ::group::jq' }}
+        "$JQ_BIN" ${{ env.JQ_FILTER == '' && '' || '"' }}$JQ_FILTER${{ env.JQ_FILTER == '' && '' || '"' }} ${{ steps.setup-jq.outputs.jq-args }} $JQ_INPUT_FILES ${{ inputs.quiet == 'true' && '>' || '| tee' }} "$output"
+        ${{ inputs.quiet == 'true' && '' || 'echo ::endgroup::' }}
+
+        if "$JQ_BIN" '""' "$output" >/dev/null 2>&1 ; then
+          echo 'is-json=true' >> "$GITHUB_OUTPUT"
+          ${{ inputs.quiet == 'true' && '' || 'echo ::group::JSON' }}
+          ${{ inputs.quiet == 'true' && '' || '"$JQ_BIN" -C . "$output"' }}
+          ${{ inputs.quiet == 'true' && '' || 'echo ::endgroup::' }}
+        else
+          echo 'is-json=false' >> "$GITHUB_OUTPUT"
+        fi
+      shell: bash
