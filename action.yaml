@@ -363,7 +363,7 @@ runs:
         output=$(mktemp)
 
         ${{ inputs.quiet == 'true' && '' || 'echo ::group::jq' }}
-        "$JQ_BIN" ${{ env.JQ_FILTER == '' && '' || '"' }}$JQ_FILTER${{ env.JQ_FILTER == '' && '' || '"' }} ${{ steps.setup-jq.outputs.jq-args }} $JQ_INPUT_FILES ${{ inputs.quiet == 'true' && '>' || '| tee' }} "$output"
+        "$JQ_BIN" ${{ env.JQ_FILTER == '' && '' || '"' }}$JQ_FILTER${{ env.JQ_FILTER == '' && '' || '"' }} $JQ_INPUT_FILES ${{ steps.setup-jq.outputs.jq-args }} ${{ inputs.quiet == 'true' && '>' || '| tee' }} "$output"
         ${{ inputs.quiet == 'true' && '' || 'echo ::endgroup::' }}
 
         if "$JQ_BIN" '""' "$output" >/dev/null 2>&1 ; then
