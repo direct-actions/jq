@@ -24,6 +24,7 @@ jobs:
           args: a b c 
           debug: true
           filter: '"\($ARGS.positional[0]), \($ARGS.positional[1]), \($ARGS.positional[2])"'
+          null-input: true
           input_yaml: |
             a: b
             c: d
