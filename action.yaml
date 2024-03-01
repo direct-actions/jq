@@ -279,6 +279,11 @@ runs:
           JQ_ARGS_STRING+=' '$(yq @json <<<"$INPUTS_slurpfile" | jq "to_entries[] | \"--slurpfile\", .key, .value" | tr '\n' ' ')
         fi
 
+        # inject input.arguments, and finish arguments
+        if ${{ inputs.arguments != '' }} ; then
+          JQ_ARGS_STRING+=" ${INPUTS_arguments}"
+        fi
+
         # finally, "remaining arguments are..."
         JQ_ARGS=()
         if ${{ inputs.args != '' }} && ${{ inputs.jsonargs != '' }} ; then
@@ -298,24 +303,6 @@ runs:
           done
         }
         append_args $INPUTS_args $INPUTS_jsonargs
-
-        for arg in "${JQ_ARGS[@]}" ; do
-          JQ_ARGS_STRING+=" $arg"
-        done 
-
-        # inject input.arguments, and finish arguments
-        if ${{ inputs.arguments != '' }} ; then
-          JQ_ARGS_STRING+=" ${INPUTS_arguments}"
-          if ! [[ "$INPUTS_arguments" =~ -- ]] ; then
-            JQ_ARGS=(--)
-          else
-            JQ_ARGS=()
-          fi
-        else
-          JQ_ARGS=(--)
-        fi
-
-        append_args ${{ inputs.input-files }}
 
         for arg in "${JQ_ARGS[@]}" ; do
           JQ_ARGS_STRING+=" $arg"
