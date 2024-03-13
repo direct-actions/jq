@@ -1,6 +1,10 @@
 name: jq Direct
 
-description: Direct Actions jq action
+branding:
+  icon: code
+  color: blue
+
+description: Simple and robust jq action offering updated jq versions, YAML input/output conversions, input from command or text & more!
 
 inputs:
   #
