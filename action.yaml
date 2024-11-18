@@ -26,15 +26,19 @@ inputs:
     default: ""
     description: Input for jq
     required: false
-  input_files:
+  input-command:
+    default: ''
+    description: Command run in bash, output will be used by jq as input
+    required: false
+  input-files:
     default: ''
     description: One or more filenames for jq to use as input
     required: false
-  input_yaml:
+  input-yaml:
     default: ""
     description: Input for jq in YAML format - will transform into JSON for jq
     required: false
-  output_yaml:
+  output-yaml:
     default: false
     description: Output in YAML format - will transform jq JSON output
     required: false
@@ -222,9 +226,9 @@ runs:
           INPUT=
         fi
 
-        if ${{ inputs.input_yaml != '' }} ; then
+        if ${{ inputs.input-yaml != '' }} ; then
           cat <<'__EOF_DA_JQ__' | yq @json >"$INPUT_YAML"
-        ${{ inputs.input_yaml }}
+        ${{ inputs.input-yaml }}
         __EOF_DA_JQ__
         else
           INPUT_YAML=
@@ -345,16 +349,15 @@ runs:
         JQ_ARGS: ${{ steps.setup-jq.outputs.jq-args }}
         JQ_BIN: ${{ steps.setup-jq.outputs.jq-bin }}
         JQ_FILTER: ${{ inputs.from-file == '' && inputs.filter || '' }}
-        JQ_INPUT_FILES: ${{ steps.setup-jq.outputs.file-input }} ${{ steps.setup-jq.outputs.file-input-yaml }} ${{ inputs.input_files }}
+        JQ_INPUT_FILES: ${{ steps.setup-jq.outputs.file-input }} ${{ steps.setup-jq.outputs.file-input-yaml }} ${{ inputs.input-files }}
       id: jq
       run: |
         # jq
         ${{ inputs.debug == 'true' && 'set -x' || '' }}
-
         output=$(mktemp)
 
         ${{ inputs.quiet == 'true' && '' || 'echo ::group::jq' }}
-        "$JQ_BIN" ${{ env.JQ_FILTER == '' && '' || '"' }}$JQ_FILTER${{ env.JQ_FILTER == '' && '' || '"' }} $JQ_INPUT_FILES ${{ steps.setup-jq.outputs.jq-args }} ${{ inputs.quiet == 'true' && '>' || '| tee' }} "$output"
+        ${{ inputs.input-command }}${{ inputs.input-command != '' && ' | '  || '' }}"$JQ_BIN" ${{ env.JQ_FILTER == '' && '' || '"' }}$JQ_FILTER${{ env.JQ_FILTER == '' && '' || '"' }} $JQ_INPUT_FILES ${{ steps.setup-jq.outputs.jq-args }} ${{ inputs.quiet == 'true' && '>' || '| tee' }} "$output"
         ${{ inputs.quiet == 'true' && '' || 'echo ::endgroup::' }}
 
         if "$JQ_BIN" '""' "$output" >/dev/null 2>&1 ; then
