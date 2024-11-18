@@ -8,7 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Test 1
+      - id: test-1
+        name: Test 1
         uses: ./
         with:
           arg: 'bob: yep'
@@ -17,7 +18,13 @@ jobs:
           input: '{ "hi": "mom" }'
           raw-output: true
           sort-keys: true
-      - name: Test 2
+      - run: |
+          # Display Test 1 Output
+          echo ::group::Test 1 Output
+          cat <<<'${{ steps.test-1.outputs.output }}'
+          echo ::endgroup::
+      - id: test-2
+        name: Test 2
         uses: ./
         with:
           args: a b c 
@@ -26,10 +33,21 @@ jobs:
             a: b
             c: d
           null-input: true
-      - name: Test input-command
+      - run: |
+          # Display Test 2 Output
+          echo ::group::Test 2 Output
+          cat <<<'${{ steps.test-2.outputs.output }}'
+          echo ::endgroup::
+      - id: test-3
+        name: Test 3
         uses: ./
         with:
           filter: '{ files: split("\n") }'
           input-command: ls /
           raw-input: true
           slurp: true
+      - run: |
+          # Display Test 3 Output
+          echo ::group::Test 3 Output
+          cat <<<'${{ steps.test-3.outputs.output }}'
+          echo ::endgroup::
