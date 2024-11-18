@@ -20,9 +20,10 @@ jobs:
           sort-keys: true
       - run: |
           # Display Test 1 Output
-          echo ::group::Test 1 Output
           cat <<<'${{ steps.test-1.outputs.output }}'
-          echo ::endgroup::
+          if ${{ steps.test-1.outputs.output == '' && 'true' || 'false' }} ; then
+            echo 'error::No output detected from jq action'
+          fi
       - id: test-2
         name: Test 2
         uses: ./
@@ -35,9 +36,10 @@ jobs:
           null-input: true
       - run: |
           # Display Test 2 Output
-          echo ::group::Test 2 Output
           cat <<<'${{ steps.test-2.outputs.output }}'
-          echo ::endgroup::
+          if ${{ steps.test-2.outputs.output == '' && 'true' || 'false' }} ; then
+            echo 'error::No output detected from jq action'
+          fi
       - id: test-3
         name: Test 3
         uses: ./
@@ -48,6 +50,7 @@ jobs:
           slurp: true
       - run: |
           # Display Test 3 Output
-          echo ::group::Test 3 Output
           cat <<<'${{ steps.test-3.outputs.output }}'
-          echo ::endgroup::
+          if ${{ steps.test-3.outputs.output == '' && 'true' || 'false' }} ; then
+            echo 'error::No output detected from jq action'
+          fi
