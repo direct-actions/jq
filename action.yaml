@@ -360,6 +360,10 @@ runs:
         ${{ inputs.input-command }}${{ inputs.input-command != '' && ' | '  || '' }}"$JQ_BIN" ${{ env.JQ_FILTER == '' && '' || '"' }}$JQ_FILTER${{ env.JQ_FILTER == '' && '' || '"' }} $JQ_INPUT_FILES ${{ steps.setup-jq.outputs.jq-args }} ${{ inputs.quiet == 'true' && '>' || '| tee' }} "$output"
         ${{ inputs.quiet == 'true' && '' || 'echo ::endgroup::' }}
 
+        echo 'output<<_EOF_' >>"${GITHUB_OUTPUT}"
+        cat "$output" >>"${GITHUB_OUTPUT}"
+        echo '_EOF_' >>"${GITHUB_OUTPUT}"
+
         if "$JQ_BIN" '""' "$output" >/dev/null 2>&1 ; then
           echo 'is-json=true' >> "$GITHUB_OUTPUT"
           ${{ inputs.quiet == 'true' && '' || 'echo ::group::JSON' }}
