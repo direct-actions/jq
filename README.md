@@ -29,7 +29,7 @@ use the short argument syntax.
 ```
 - uses: direct-actions/jq@v1
   with:
-    arguments -r
+    arguments: -r
     filter: '"The user's login is \(.login)"'
     input: ${{ github.event.pull_request.head.user }}
 ```
@@ -53,21 +53,21 @@ Commands can be used for input.
 ```
 - uses: direct-actions/jq@v1
   with:
-    input-command: /tmp/dump_json.sh
     filter: |
       map(
         select(.included != 'false')
       ) |
       length
+    input-command: /tmp/dump_json.sh
 ```
 As can files.
 ```
 - uses: direct-actions/jq@v1
   with:
-    input-files: /tmp/one.json /tmp/two.json
     filter: |
       map(
         select(.included != 'false')
       ) |
       length
+    input-files: /tmp/one.json /tmp/two.json
 ```
