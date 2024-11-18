@@ -7,7 +7,7 @@ The default behavior will take input from text or a command, run a filter, and
 make the output available to other steps.
 ```
 - id: jq
-  uses: direct-actions/jq@v0.1.0
+  uses: direct-actions/jq@v1
   with:
     filter: { user: .login }
     input: ${{ github.event.pull_request.head.user }}
@@ -18,7 +18,7 @@ make the output available to other steps.
 Additional jq flags can be specified by using jq argument long names as input
 names.
 ```
-- uses: direct-actions/jq@v0.1.0
+- uses: direct-actions/jq@v1
   with:
     filter: '"The user's login is \(.login)"'
     input: ${{ github.event.pull_request.head.user }}
@@ -27,7 +27,7 @@ names.
 While I prefer the long name syntax as it is self-documenting, you can also
 use the short argument syntax.
 ```
-- uses: direct-actions/jq@v0.1.0
+- uses: direct-actions/jq@v1
   with:
     arguments -r
     filter: '"The user's login is \(.login)"'
@@ -35,7 +35,7 @@ use the short argument syntax.
 ```
 ## Using YAML input/output conversion
 ```
-- uses: direct-actions/jq@v0.1.0
+- uses: direct-actions/jq@v1
   with:
     filter: |
       .example_key |
@@ -51,9 +51,9 @@ use the short argument syntax.
 ## Input commands or files
 Commands can be used for input.
 ```
-- uses: direct-actions/jq@v0.1.0
+- uses: direct-actions/jq@v1
   with:
-    input_command: /tmp/dump_json.sh
+    input-command: /tmp/dump_json.sh
     filter: |
       map(
         select(.included != 'false')
@@ -62,9 +62,9 @@ Commands can be used for input.
 ```
 As can files.
 ```
-- uses: direct-actions/jq@v0.1.0
+- uses: direct-actions/jq@v1
   with:
-    input_files: /tmp/one.json /tmp/two.json
+    input-files: /tmp/one.json /tmp/two.json
     filter: |
       map(
         select(.included != 'false')
